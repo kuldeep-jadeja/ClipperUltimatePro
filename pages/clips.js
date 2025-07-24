@@ -1,269 +1,196 @@
-// // pages/clips.js
-// "use client";
-
-// import useSWR from 'swr';
-// import { useState } from 'react';
-// import { ExternalLink, Loader2, RefreshCw, Download } from 'lucide-react';
-
-// const fetcher = (url) => fetch(url).then((r) => r.json());
-
-// export default function ClipLibrary() {
-//     const { data, isLoading, mutate } = useSWR('/api/clips', fetcher, {
-//         refreshInterval: 60_000,
-//     });
-//     const [search, setSearch] = useState('');
-
-//     const filtered =
-//         data?.filter((c) =>
-//             c.streamerName.toLowerCase().includes(search.toLowerCase()),
-//         ) ?? [];
-//     // const [status, setStatus] = useState('idle');
-//     // const [progress, setProgress] = useState(0);
-
-//     // const handleDownload = async () => {
-//     //     setStatus('downloading');
-
-//     //     try {
-//     //         const response = await fetch('/api/downloadClip', {
-//     //             method: 'POST',
-//     //             headers: { 'Content-Type': 'application/json' },
-//     //             body: JSON.stringify({ clipId: clip.clipId })
-//     //         });
-
-//     //         const result = await response.json();
-
-//     //         if (result.success) {
-//     //             setStatus('success');
-//     //             const a = document.createElement('a');
-//     //             a.href = result.downloadPath;
-//     //             a.download = `${clip.streamerName}_${clip.clipId}.mp4`;
-//     //             a.click();
-//     //         } else {
-//     //             setStatus('error');
-//     //         }
-//     //     } catch (error) {
-//     //         setStatus('error');
-//     //         console.error('Download error:', error);
-//     //     }
-//     // };
-
-//     return (
-//         <div className="min-h-screen bg-gray-900 text-white px-4 py-8 max-w-6xl mx-auto">
-//             <h1 className="text-3xl font-bold mb-6">🎞️ Clip Library</h1>
-
-//             {/* search + refresh */}
-//             <div className="flex items-center gap-3 mb-6">
-//                 <input
-//                     type="text"
-//                     placeholder="Filter by streamer…"
-//                     value={search}
-//                     onChange={(e) => setSearch(e.target.value)}
-//                     className="w-full sm:w-72 px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-600"
-//                 />
-//                 <button
-//                     onClick={() => mutate()}
-//                     className="p-2 rounded-lg border border-gray-600 hover:bg-gray-800"
-//                 >
-//                     <RefreshCw size={18} />
-//                 </button>
-//             </div>
-
-//             {isLoading && (
-//                 <div className="flex justify-center py-20">
-//                     <Loader2 className="animate-spin" size={32} />
-//                 </div>
-//             )}
-
-//             {!isLoading && filtered.length === 0 && (
-//                 <p className="text-gray-400">No clips found.</p>
-//             )}
-
-//             <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-//                 {filtered.map((clip) => (
-//                     <div
-//                         key={clip._id}
-//                         className="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden flex flex-col"
-//                     >
-//                         {/* Twitch embed thumbnail */}
-//                         {/* Twitch gives a thumbnail by swapping '.mp4' with '.jpg' on the URL
-//                  or via clip.thumbnail_url if you store it. Fallback: Twitch player */}
-//                         {/* <a
-//                             href={clip.url}
-//                             target="_blank"
-//                             rel="noopener noreferrer"
-//                             className="relative"
-//                         >
-
-//                             <iframe
-//                                 src={`https://clips.twitch.tv/embed?clip=${clip.clipId}&parent=${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}`}
-//                                 height="180"
-//                                 width="100%"
-//                                 allowFullScreen
-//                                 className="block"
-//                             />
-//                         </a> */}
-
-//                         <div className="p-4 flex-1 flex flex-col">
-//                             <h3 className="font-semibold mb-1 text-purple-400">{clip.streamerName}</h3>
-//                             <p className="text-sm text-gray-400 mb-2">
-//                                 {new Date(clip.createdAt).toLocaleString()}
-//                             </p>
-
-//                             <a
-//                                 href={clip.url}
-//                                 target="_blank"
-//                                 rel="noopener noreferrer"
-//                                 className="mt-auto inline-flex items-center gap-1 text-sm text-purple-400 hover:underline"
-//                             >
-//                                 Watch clip <ExternalLink size={14} />
-//                             </a>
-
-//                             <button
-//                                 className="mt-2 inline-flex items-center gap-1 text-sm text-purple-400 hover:underline"
-//                                 disabled={status === 'downloading'}
-//                                 onClick={async () => {
-//                                     setStatus('downloading');
-//                                     try {
-//                                         const r = await fetch('/api/downloadClip', {
-//                                             method: 'POST',
-//                                             headers: { 'Content-Type': 'application/json' },
-//                                             body: JSON.stringify({ clipId: clip.clipId }),
-//                                         }).then(r => r.json());
-
-//                                         if (r.success) {
-//                                             setStatus('success');
-//                                             /* trigger browser download */
-//                                             const a = document.createElement('a');
-//                                             a.href = r.downloadPath;
-//                                             a.download = `${clip.streamerName}_${clip.clipId}.mp4`;
-//                                             a.click();
-//                                         } else {
-//                                             setStatus('error');
-//                                         }
-//                                     } catch (err) {
-//                                         console.error(err);
-//                                         setStatus('error');
-//                                     } finally {
-//                                         setTimeout(() => setStatus('idle'), 3000);
-//                                     }
-//                                 }}
-//                             >
-//                                 {status === 'idle' && <>Download <Download size={14} /></>}
-//                                 {status === 'downloading' && 'Downloading…'}
-//                                 {status === 'success' && 'Saved!'}
-//                                 {status === 'error' && 'Error'}
-//                             </button>
-//                         </div>
-//                     </div>
-//                 ))}
-//             </div>
-//         </div>
-//     );
-// }
-
-
-
-
-// pages/clips.js
-"use client";
-
-import { useState } from "react";
-import useSWR from "swr";
+"use client"
+import { useState } from "react"
+import useSWR from "swr"
 import {
     ExternalLink,
     RefreshCw,
     Loader2,
     Download,
-} from "lucide-react";
+    Search,
+    Play,
+    Calendar,
+    User,
+    Film,
+    Zap,
+    CheckCircle,
+    AlertCircle,
+} from "lucide-react"
+import Link from "next/link"
 
-const fetcher = (url) => fetch(url).then((r) => r.json());
+const fetcher = (url) => fetch(url).then((r) => r.json())
 
 function ClipCard({ clip }) {
-    const [status, setStatus] = useState("idle"); // idle | down | ok | err
+    const [status, setStatus] = useState("idle") // idle | down | ok | err
 
     const downloadClip = async () => {
-        if (status === "down") return;
-        setStatus("down");
+        if (status === "down") return
+        setStatus("down")
         try {
             const res = await fetch("/api/downloadClip", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ clipId: clip.clipId }),
-            });
-            const json = await res.json();
+            })
+            const json = await res.json()
             if (json.success) {
-                setStatus("ok");
-
+                setStatus("ok")
                 // 🟢 Trigger native Save As dialog
-                const a = document.createElement("a");
-                a.href = json.downloadPath;
-                a.download = `${clip.streamerName}_${clip.clipId}.mp4`;
-                a.style.display = "none";
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
+                const a = document.createElement("a")
+                a.href = json.downloadPath
+                a.download = `${clip.streamerName}_${clip.clipId}.mp4`
+                a.style.display = "none"
+                document.body.appendChild(a)
+                a.click()
+                document.body.removeChild(a)
             } else {
-                setStatus("err");
+                setStatus("err")
             }
         } catch {
-            setStatus("err");
+            setStatus("err")
         } finally {
-            setTimeout(() => setStatus("idle"), 3000);
+            setTimeout(() => setStatus("idle"), 3000)
         }
-    };
+    }
+
+    const getStatusButton = () => {
+        switch (status) {
+            case "down":
+                return {
+                    text: "Downloading...",
+                    icon: <Loader2 className="w-4 h-4 animate-spin" />,
+                    className: "bg-blue-600 border-blue-500 cursor-not-allowed",
+                }
+            case "ok":
+                return {
+                    text: "Downloaded!",
+                    icon: <CheckCircle className="w-4 h-4" />,
+                    className: "bg-green-600 border-green-500",
+                }
+            case "err":
+                return {
+                    text: "Failed",
+                    icon: <AlertCircle className="w-4 h-4" />,
+                    className: "bg-red-600 border-red-500",
+                }
+            default:
+                return {
+                    text: "Download",
+                    icon: <Download className="w-4 h-4" />,
+                    className:
+                        "bg-gradient-to-r from-purple-600 to-pink-600 border-purple-500 hover:from-purple-700 hover:to-pink-700",
+                }
+        }
+    }
+
+    const buttonConfig = getStatusButton()
 
     return (
-        <div className="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden flex flex-col">
-            {/* embed */}
-            {/* <iframe
-                src={`https://clips.twitch.tv/embed?clip=${clip.clipId}&parent=${typeof window !== "undefined"
-                    ? window.location.hostname
-                    : "localhost"
-                    }`}
-                height="180"
-                width="100%"
-                allowFullScreen
-                className="block"
-            /> */}
+        <div className="group bg-gradient-to-br from-gray-900/80 to-black/80 border border-gray-700/50 rounded-2xl overflow-hidden transition-all duration-300 hover:border-purple-500/50 hover:shadow-2xl hover:shadow-purple-500/10 hover:-translate-y-1">
+            {/* Thumbnail/Preview Section */}
+            <div className="relative h-48 bg-gradient-to-br from-gray-800 to-gray-900 overflow-hidden">
+                {/* Twitch Embed - Uncomment when ready */}
+                {/* <iframe
+          src={`https://clips.twitch.tv/embed?clip=${clip.clipId}&parent=${
+            typeof window !== "undefined" ? window.location.hostname : "localhost"
+          }`}
+          height="192"
+          width="100%"
+          allowFullScreen
+          className="block"
+        /> */}
 
-            {/* body */}
-            <div className="p-4 flex-1 flex flex-col">
-                <h3 className="font-semibold mb-1 text-purple-400">
-                    {clip.streamerName}
-                </h3>
-                <p className="text-sm text-gray-400 mb-2">
-                    {new Date(clip.createdAt).toLocaleString()}
-                </p>
+                {/* Placeholder with Play Button */}
+                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-900/20 to-pink-900/20">
+                    <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center shadow-2xl shadow-purple-600/50 group-hover:scale-110 transition-transform duration-300">
+                        <Play className="w-8 h-8 text-white ml-1" />
+                    </div>
+                </div>
 
-                <a
-                    href={clip.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-sm text-purple-400 hover:underline"
-                >
-                    Watch clip <ExternalLink size={14} />
-                </a>
+                {/* Overlay Gradient */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
 
-                {/* download button */}
-                <button
-                    onClick={downloadClip}
-                    disabled={status === "down"}
-                    className="mt-2 inline-flex items-center justify-center gap-1 text-sm
-                     rounded-lg border border-purple-500 px-3 py-1.5
-                     disabled:opacity-60 bg-purple-600 hover:bg-purple-700"
-                >
-                    {status === "idle" && (
-                        <>
-                            Download <Download size={14} />
-                        </>
-                    )}
-                    {status === "down" && "Downloading…"}
-                    {status === "ok" && "Saved!"}
-                    {status === "err" && "Error"}
-                </button>
+                {/* Live Badge */}
+                <div className="absolute top-3 left-3">
+                    <div className="flex items-center space-x-2 px-3 py-1 bg-red-600/90 backdrop-blur-sm rounded-full">
+                        <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                        <span className="text-white text-xs font-bold uppercase tracking-wide">Clip</span>
+                    </div>
+                </div>
+
+                {/* Duration Badge (if available) */}
+                <div className="absolute top-3 right-3">
+                    <div className="px-2 py-1 bg-black/70 backdrop-blur-sm rounded-lg">
+                        <span className="text-white text-xs font-medium">0:30</span>
+                    </div>
+                </div>
             </div>
+
+            {/* Content Section */}
+            <div className="p-6">
+                {/* Streamer Info */}
+                <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                        <User className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-bold text-white group-hover:text-purple-400 transition-colors duration-200">
+                            {clip.streamerName}
+                        </h3>
+                        <div className="flex items-center space-x-2 text-sm text-gray-400">
+                            <Calendar className="w-3 h-3" />
+                            <span>{new Date(clip.createdAt).toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Clip Title (if available) */}
+                {clip.title && (
+                    <div className="mb-4 p-3 bg-gray-800/50 rounded-xl border border-gray-700/50">
+                        <p className="text-gray-300 text-sm italic">"{clip.title}"</p>
+                    </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex space-x-3">
+                    {/* Watch Button */}
+                    <a
+                        href={clip.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 inline-flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 border border-blue-500 rounded-xl text-white font-medium hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 shadow-lg shadow-blue-600/25"
+                    >
+                        <ExternalLink className="w-4 h-4" />
+                        <span>Watch</span>
+                    </a>
+
+                    {/* Download Button */}
+                    <button
+                        onClick={downloadClip}
+                        disabled={status === "down"}
+                        className={`flex-1 inline-flex items-center justify-center space-x-2 px-4 py-3 border rounded-xl text-white font-medium transition-all duration-200 shadow-lg disabled:opacity-60 disabled:cursor-not-allowed ${buttonConfig.className}`}
+                    >
+                        {buttonConfig.icon}
+                        <span>{buttonConfig.text}</span>
+                    </button>
+                </div>
+
+                {/* Stats Row */}
+                <div className="mt-4 flex items-center justify-between text-xs text-gray-400">
+                    <div className="flex items-center space-x-1">
+                        <Film className="w-3 h-3" />
+                        <span>Clip ID: {clip.clipId?.slice(-6) || "N/A"}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                        <Zap className="w-3 h-3 text-yellow-400" />
+                        <span>Auto-generated</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Hover Glow Effect */}
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-purple-600/0 via-purple-600/5 to-pink-600/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
         </div>
-    );
+    )
 }
 
 /* -------------------------------------------------------------- */
@@ -271,50 +198,111 @@ function ClipCard({ clip }) {
 export default function ClipLibrary() {
     const { data, isLoading, mutate } = useSWR("/api/clips", fetcher, {
         refreshInterval: 60_000,
-    });
-    const [search, setSearch] = useState("");
+    })
+    const [search, setSearch] = useState("")
 
-    const filtered =
-        data?.filter((c) =>
-            c.streamerName.toLowerCase().includes(search.toLowerCase())
-        ) ?? [];
+    const filtered = data?.filter((c) => c.streamerName.toLowerCase().includes(search.toLowerCase())) ?? []
 
     return (
-        <div className="min-h-screen bg-gray-900 text-white px-4 py-8 max-w-6xl mx-auto">
-            <h1 className="text-3xl font-bold mb-6">🎞️ Clip Library</h1>
-
-            {/* search + refresh */}
-            <div className="flex items-center gap-3 mb-6">
-                <input
-                    type="text"
-                    placeholder="Filter by streamer…"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-full sm:w-72 px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-600"
-                />
-                <button
-                    onClick={() => mutate()}
-                    className="p-2 rounded-lg border border-gray-600 hover:bg-gray-800"
-                >
-                    <RefreshCw size={18} />
-                </button>
-            </div>
-
-            {isLoading && (
-                <div className="flex justify-center py-20">
-                    <Loader2 className="animate-spin" size={32} />
+        <div className="min-h-screen bg-black text-white">
+            {/* Header */}
+            <header className="bg-gradient-to-r from-purple-900 via-black to-purple-900 border-b border-purple-500/20 sticky top-0 z-40">
+                <div className="container mx-auto px-6">
+                    <div className="flex items-center justify-between h-16">
+                        <Link href="/" className="text-white hover:text-purple-400 transition-colors duration-200">
+                            <div className="flex items-center space-x-3">
+                                <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-pink-500 rounded-lg flex items-center justify-center">
+                                    <Film className="w-5 h-5 text-white" />
+                                </div>
+                                <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                                    Clip Library
+                                </h1>
+                            </div>
+                        </Link>
+                        <div className="text-sm text-gray-400">
+                            {filtered.length} clip{filtered.length !== 1 ? "s" : ""} found
+                        </div>
+                    </div>
                 </div>
-            )}
+            </header >
 
-            {!isLoading && filtered.length === 0 && (
-                <p className="text-gray-400">No clips found.</p>
-            )}
+            <main className="container mx-auto px-6 py-8">
+                {/* Hero Section */}
+                <div className="text-center mb-12">
+                    <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 bg-clip-text text-transparent">
+                        Your Clip Collection
+                    </h2>
+                    <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+                        Browse and download all your automatically generated clips
+                    </p>
+                </div>
 
-            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                {filtered.map((clip) => (
-                    <ClipCard key={clip._id} clip={clip} />
-                ))}
-            </div>
-        </div>
-    );
+                {/* Search and Controls */}
+                <div className="mb-8 bg-gradient-to-r from-gray-900/80 to-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6 shadow-2xl">
+                    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                        {/* Search Bar */}
+                        <div className="relative flex-1 max-w-md">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                            <input
+                                type="text"
+                                placeholder="Search by streamer name..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-gray-600/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                            />
+                        </div>
+
+                        {/* Refresh Button */}
+                        <button
+                            onClick={() => mutate()}
+                            className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl text-white font-medium hover:from-purple-700 hover:to-pink-700 transition-all duration-200 shadow-lg shadow-purple-600/25"
+                        >
+                            <RefreshCw className="w-4 h-4" />
+                            <span>Refresh</span>
+                        </button>
+                    </div>
+                </div>
+
+                {/* Loading State */}
+                {isLoading && (
+                    <div className="text-center py-20">
+                        <div className="w-16 h-16 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto mb-4"></div>
+                        <p className="text-gray-400 text-lg">Loading your clips...</p>
+                    </div>
+                )}
+
+                {/* Empty State */}
+                {!isLoading && filtered.length === 0 && (
+                    <div className="text-center py-20">
+                        <div className="w-20 h-20 bg-gray-800/50 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <Film className="w-10 h-10 text-gray-500" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-white mb-4">No clips found</h3>
+                        <p className="text-gray-400 mb-8 max-w-md mx-auto">
+                            {search
+                                ? `No clips match "${search}". Try a different search term.`
+                                : "Start monitoring streamers to automatically generate clips!"}
+                        </p>
+                        {search && (
+                            <button
+                                onClick={() => setSearch("")}
+                                className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-xl text-white font-medium transition-colors duration-200"
+                            >
+                                Clear Search
+                            </button>
+                        )}
+                    </div>
+                )}
+
+                {/* Clips Grid */}
+                {!isLoading && filtered.length > 0 && (
+                    <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                        {filtered.map((clip) => (
+                            <ClipCard key={clip._id} clip={clip} />
+                        ))}
+                    </div>
+                )}
+            </main>
+        </div >
+    )
 }
