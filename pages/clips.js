@@ -191,13 +191,19 @@ function ClipCard({ clip }) {
                 body: JSON.stringify({ clipId: clip.clipId }),
             });
             const json = await res.json();
-            if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-                window.open(json.downloadPath, "_blank");
-            } else {
+            if (json.success) {
+                setStatus("ok");
+
+                // 🟢 Trigger native Save As dialog
                 const a = document.createElement("a");
                 a.href = json.downloadPath;
                 a.download = `${clip.streamerName}_${clip.clipId}.mp4`;
+                a.style.display = "none";
+                document.body.appendChild(a);
                 a.click();
+                document.body.removeChild(a);
+            } else {
+                setStatus("err");
             }
         } catch {
             setStatus("err");
