@@ -14,41 +14,60 @@ import {
     Zap,
     CheckCircle,
     AlertCircle,
+    Image as ImageIcon,
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 const fetcher = (url) => fetch(url).then((r) => r.json());
 
 function ClipCard({ clip }) {
     const [status, setStatus] = useState("idle"); // idle | down | ok | err
+    const [thumbnailError, setThumbnailError] = useState(false);
 
     const downloadClip = async () => {
         if (status === "down") return;
         setStatus("down");
 
         try {
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+            if (isIOS) {
+                // ✅ iOS workaround: open GET link directly
+                window.open(`/api/clipDownload?clipId=${clip.clipId}`, "_blank");
+                setStatus("ok");
+                return;
+            }
+
+            // ✅ For desktop and Android: use POST with blob response
             const res = await fetch("/api/downloadClip", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ clipId: clip.clipId }),
             });
 
-            if (!res.ok) throw new Error("Download failed");
+            if (!res.ok) {
+                const errText = await res.text();
+                console.error(`Download failed: ${res.status} - ${errText}`);
+                throw new Error(errText || 'Download failed');
+            }
 
             const blob = await res.blob();
             const url = window.URL.createObjectURL(blob);
+
             const a = document.createElement("a");
             a.href = url;
             a.download = `${clip.streamerName}_${clip.clipId}.mp4`;
             document.body.appendChild(a);
             a.click();
             a.remove();
-            window.URL.revokeObjectURL(url);
 
+            window.URL.revokeObjectURL(url);
             setStatus("ok");
         } catch (err) {
             console.error("Download error:", err);
             setStatus("err");
+            // Show error toast or notification here
         } finally {
             setTimeout(() => setStatus("idle"), 3000);
         }
@@ -86,15 +105,40 @@ function ClipCard({ clip }) {
 
     const buttonConfig = getStatusButton();
 
+    // Format duration if available or use default
+    const formatDuration = (seconds) => {
+        if (!seconds && seconds !== 0) return "0:30";
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    const duration = formatDuration(clip.duration);
+
     return (
         <div className="group bg-gradient-to-br from-gray-900/80 to-black/80 border border-gray-700/50 rounded-2xl overflow-hidden transition-all duration-300 hover:border-purple-500/50 hover:shadow-2xl hover:shadow-purple-500/10 hover:-translate-y-1">
             {/* Thumbnail */}
             <div className="relative h-48 bg-gradient-to-br from-gray-800 to-gray-900 overflow-hidden">
-                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-900/20 to-pink-900/20">
-                    <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center shadow-2xl shadow-purple-600/50 group-hover:scale-110 transition-transform duration-300">
-                        <Play className="w-8 h-8 text-white ml-1" />
+                {clip.thumbnailUrl && !thumbnailError ? (
+                    <Image
+                        src={clip.thumbnailUrl}
+                        alt={clip.title || `${clip.streamerName}'s clip`}
+                        fill
+                        className="object-cover transition-transform group-hover:scale-105 duration-300"
+                        onError={() => setThumbnailError(true)}
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    />
+                ) : (
+                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-900/20 to-pink-900/20">
+                        <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center shadow-2xl shadow-purple-600/50 group-hover:scale-110 transition-transform duration-300">
+                            {thumbnailError ? (
+                                <ImageIcon className="w-8 h-8 text-white" />
+                            ) : (
+                                <Play className="w-8 h-8 text-white ml-1" />
+                            )}
+                        </div>
                     </div>
-                </div>
+                )}
 
                 <div className="absolute top-3 left-3">
                     <div className="flex items-center space-x-2 px-3 py-1 bg-red-600/90 backdrop-blur-sm rounded-full">
@@ -105,7 +149,7 @@ function ClipCard({ clip }) {
 
                 <div className="absolute top-3 right-3">
                     <div className="px-2 py-1 bg-black/70 backdrop-blur-sm rounded-lg">
-                        <span className="text-white text-xs font-medium">0:30</span>
+                        <span className="text-white text-xs font-medium">{duration}</span>
                     </div>
                 </div>
             </div>
@@ -179,7 +223,8 @@ export default function ClipLibrary() {
 
     const filtered =
         data?.filter((c) =>
-            c.streamerName.toLowerCase().includes(search.toLowerCase())
+            c.streamerName?.toLowerCase().includes(search.toLowerCase()) ||
+            (c.title?.toLowerCase() || "").includes(search.toLowerCase())
         ) ?? [];
 
     return (
