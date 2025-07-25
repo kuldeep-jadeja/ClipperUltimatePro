@@ -1,6 +1,6 @@
-"use client"
-import { useState } from "react"
-import useSWR from "swr"
+"use client";
+import { useState } from "react";
+import useSWR from "swr";
 import {
     ExternalLink,
     RefreshCw,
@@ -14,43 +14,46 @@ import {
     Zap,
     CheckCircle,
     AlertCircle,
-} from "lucide-react"
-import Link from "next/link"
+} from "lucide-react";
+import Link from "next/link";
 
-const fetcher = (url) => fetch(url).then((r) => r.json())
+const fetcher = (url) => fetch(url).then((r) => r.json());
 
 function ClipCard({ clip }) {
-    const [status, setStatus] = useState("idle") // idle | down | ok | err
+    const [status, setStatus] = useState("idle"); // idle | down | ok | err
 
     const downloadClip = async () => {
-        if (status === "down") return
-        setStatus("down")
+        if (status === "down") return;
+        setStatus("down");
+
         try {
             const res = await fetch("/api/downloadClip", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ clipId: clip.clipId }),
-            })
-            const json = await res.json()
-            if (json.success) {
-                setStatus("ok")
-                // 🟢 Trigger native Save As dialog
-                const a = document.createElement("a")
-                a.href = json.downloadPath
-                a.download = `${clip.streamerName}_${clip.clipId}.mp4`
-                a.style.display = "none"
-                document.body.appendChild(a)
-                a.click()
-                document.body.removeChild(a)
+            });
+
+            const json = await res.json();
+            if (json.success && json.downloadPath) {
+                setStatus("ok");
+
+                // ✅ Force native download via programmatic link
+                const a = document.createElement("a");
+                a.href = json.downloadPath;
+                a.download = `${clip.streamerName}_${clip.clipId}.mp4`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
             } else {
-                setStatus("err")
+                setStatus("err");
             }
-        } catch {
-            setStatus("err")
+        } catch (err) {
+            console.error("Download error:", err);
+            setStatus("err");
         } finally {
-            setTimeout(() => setStatus("idle"), 3000)
+            setTimeout(() => setStatus("idle"), 3000);
         }
-    }
+    };
 
     const getStatusButton = () => {
         switch (status) {
@@ -59,57 +62,41 @@ function ClipCard({ clip }) {
                     text: "Downloading...",
                     icon: <Loader2 className="w-4 h-4 animate-spin" />,
                     className: "bg-blue-600 border-blue-500 cursor-not-allowed",
-                }
+                };
             case "ok":
                 return {
                     text: "Downloaded!",
                     icon: <CheckCircle className="w-4 h-4" />,
                     className: "bg-green-600 border-green-500",
-                }
+                };
             case "err":
                 return {
                     text: "Failed",
                     icon: <AlertCircle className="w-4 h-4" />,
                     className: "bg-red-600 border-red-500",
-                }
+                };
             default:
                 return {
                     text: "Download",
                     icon: <Download className="w-4 h-4" />,
                     className:
                         "bg-gradient-to-r from-purple-600 to-pink-600 border-purple-500 hover:from-purple-700 hover:to-pink-700",
-                }
+                };
         }
-    }
+    };
 
-    const buttonConfig = getStatusButton()
+    const buttonConfig = getStatusButton();
 
     return (
         <div className="group bg-gradient-to-br from-gray-900/80 to-black/80 border border-gray-700/50 rounded-2xl overflow-hidden transition-all duration-300 hover:border-purple-500/50 hover:shadow-2xl hover:shadow-purple-500/10 hover:-translate-y-1">
-            {/* Thumbnail/Preview Section */}
+            {/* Thumbnail */}
             <div className="relative h-48 bg-gradient-to-br from-gray-800 to-gray-900 overflow-hidden">
-                {/* Twitch Embed - Uncomment when ready */}
-                {/* <iframe
-          src={`https://clips.twitch.tv/embed?clip=${clip.clipId}&parent=${
-            typeof window !== "undefined" ? window.location.hostname : "localhost"
-          }`}
-          height="192"
-          width="100%"
-          allowFullScreen
-          className="block"
-        /> */}
-
-                {/* Placeholder with Play Button */}
                 <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-900/20 to-pink-900/20">
                     <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center shadow-2xl shadow-purple-600/50 group-hover:scale-110 transition-transform duration-300">
                         <Play className="w-8 h-8 text-white ml-1" />
                     </div>
                 </div>
 
-                {/* Overlay Gradient */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-
-                {/* Live Badge */}
                 <div className="absolute top-3 left-3">
                     <div className="flex items-center space-x-2 px-3 py-1 bg-red-600/90 backdrop-blur-sm rounded-full">
                         <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
@@ -117,7 +104,6 @@ function ClipCard({ clip }) {
                     </div>
                 </div>
 
-                {/* Duration Badge (if available) */}
                 <div className="absolute top-3 right-3">
                     <div className="px-2 py-1 bg-black/70 backdrop-blur-sm rounded-lg">
                         <span className="text-white text-xs font-medium">0:30</span>
@@ -125,9 +111,8 @@ function ClipCard({ clip }) {
                 </div>
             </div>
 
-            {/* Content Section */}
+            {/* Content */}
             <div className="p-6">
-                {/* Streamer Info */}
                 <div className="flex items-center space-x-3 mb-4">
                     <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
                         <User className="w-5 h-5 text-white" />
@@ -143,16 +128,13 @@ function ClipCard({ clip }) {
                     </div>
                 </div>
 
-                {/* Clip Title (if available) */}
                 {clip.title && (
                     <div className="mb-4 p-3 bg-gray-800/50 rounded-xl border border-gray-700/50">
                         <p className="text-gray-300 text-sm italic">"{clip.title}"</p>
                     </div>
                 )}
 
-                {/* Action Buttons */}
                 <div className="flex space-x-3">
-                    {/* Watch Button */}
                     <a
                         href={clip.url}
                         target="_blank"
@@ -163,7 +145,6 @@ function ClipCard({ clip }) {
                         <span>Watch</span>
                     </a>
 
-                    {/* Download Button */}
                     <button
                         onClick={downloadClip}
                         disabled={status === "down"}
@@ -174,7 +155,6 @@ function ClipCard({ clip }) {
                     </button>
                 </div>
 
-                {/* Stats Row */}
                 <div className="mt-4 flex items-center justify-between text-xs text-gray-400">
                     <div className="flex items-center space-x-1">
                         <Film className="w-3 h-3" />
@@ -187,25 +167,24 @@ function ClipCard({ clip }) {
                 </div>
             </div>
 
-            {/* Hover Glow Effect */}
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-purple-600/0 via-purple-600/5 to-pink-600/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
         </div>
-    )
+    );
 }
 
-/* -------------------------------------------------------------- */
-/* main library page                                              */
 export default function ClipLibrary() {
     const { data, isLoading, mutate } = useSWR("/api/clips", fetcher, {
-        refreshInterval: 60_000,
-    })
-    const [search, setSearch] = useState("")
+        refreshInterval: 60000,
+    });
+    const [search, setSearch] = useState("");
 
-    const filtered = data?.filter((c) => c.streamerName.toLowerCase().includes(search.toLowerCase())) ?? []
+    const filtered =
+        data?.filter((c) =>
+            c.streamerName.toLowerCase().includes(search.toLowerCase())
+        ) ?? [];
 
     return (
         <div className="min-h-screen bg-black text-white">
-            {/* Header */}
             <header className="bg-gradient-to-r from-purple-900 via-black to-purple-900 border-b border-purple-500/20 sticky top-0 z-40">
                 <div className="container mx-auto px-6">
                     <div className="flex items-center justify-between h-16">
@@ -224,10 +203,9 @@ export default function ClipLibrary() {
                         </div>
                     </div>
                 </div>
-            </header >
+            </header>
 
             <main className="container mx-auto px-6 py-8">
-                {/* Hero Section */}
                 <div className="text-center mb-12">
                     <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-purple-400 via-pink-400 to-purple-400 bg-clip-text text-transparent">
                         Your Clip Collection
@@ -237,10 +215,8 @@ export default function ClipLibrary() {
                     </p>
                 </div>
 
-                {/* Search and Controls */}
                 <div className="mb-8 bg-gradient-to-r from-gray-900/80 to-gray-800/80 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6 shadow-2xl">
                     <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                        {/* Search Bar */}
                         <div className="relative flex-1 max-w-md">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                             <input
@@ -252,7 +228,6 @@ export default function ClipLibrary() {
                             />
                         </div>
 
-                        {/* Refresh Button */}
                         <button
                             onClick={() => mutate()}
                             className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl text-white font-medium hover:from-purple-700 hover:to-pink-700 transition-all duration-200 shadow-lg shadow-purple-600/25"
@@ -263,7 +238,6 @@ export default function ClipLibrary() {
                     </div>
                 </div>
 
-                {/* Loading State */}
                 {isLoading && (
                     <div className="text-center py-20">
                         <div className="w-16 h-16 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto mb-4"></div>
@@ -271,7 +245,6 @@ export default function ClipLibrary() {
                     </div>
                 )}
 
-                {/* Empty State */}
                 {!isLoading && filtered.length === 0 && (
                     <div className="text-center py-20">
                         <div className="w-20 h-20 bg-gray-800/50 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -294,7 +267,6 @@ export default function ClipLibrary() {
                     </div>
                 )}
 
-                {/* Clips Grid */}
                 {!isLoading && filtered.length > 0 && (
                     <div className="grid gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                         {filtered.map((clip) => (
@@ -303,6 +275,6 @@ export default function ClipLibrary() {
                     </div>
                 )}
             </main>
-        </div >
-    )
+        </div>
+    );
 }
