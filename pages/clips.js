@@ -33,20 +33,27 @@ function ClipCard({ clip }) {
                 body: JSON.stringify({ clipId: clip.clipId }),
             });
 
-            const json = await res.json();
-            if (json.success && json.downloadPath) {
-                setStatus("ok");
-
-                // ✅ Force native download via programmatic link
-                const a = document.createElement("a");
-                a.href = json.downloadPath;
-                a.download = `${clip.streamerName}_${clip.clipId}.mp4`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-            } else {
-                setStatus("err");
+            if (!res.ok) {
+                throw new Error("Download failed");
             }
+
+            // 🔁 Get the video blob directly from response
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+
+            // ✅ Create an anchor to trigger native download
+            const a = document.createElement("a");
+            a.href = url;
+            console.log("Downloading clip:", url);
+
+            a.download = `${clip.streamerName}_${clip.clipId}.mp4`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            window.URL.revokeObjectURL(url);
+
+            setStatus("ok");
         } catch (err) {
             console.error("Download error:", err);
             setStatus("err");
@@ -54,6 +61,7 @@ function ClipCard({ clip }) {
             setTimeout(() => setStatus("idle"), 3000);
         }
     };
+
 
     const getStatusButton = () => {
         switch (status) {
